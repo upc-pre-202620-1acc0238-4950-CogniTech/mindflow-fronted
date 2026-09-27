@@ -5,10 +5,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.cognitech.mindflow.data.model.Habit
 import com.cognitech.mindflow.data.model.JournalCategories
 import com.cognitech.mindflow.data.model.JournalEntry
 import com.cognitech.mindflow.data.model.User
 import com.cognitech.mindflow.data.repository.AuthRepository
+import com.cognitech.mindflow.data.repository.HabitRepository
 import com.cognitech.mindflow.data.repository.JournalRepository
 import kotlinx.coroutines.launch
 
@@ -17,6 +19,7 @@ data class HomeState(
     val draft: String = "",
     val category: String = JournalCategories.first(),
     val entries: List<JournalEntry> = emptyList(),
+    val habits: List<Habit> = emptyList(),
     val lastAiResponse: String? = null,
     val saving: Boolean = false,
     val showAllHistory: Boolean = false,
@@ -25,16 +28,22 @@ data class HomeState(
 class HomeViewModel(
     private val authRepository: AuthRepository,
     private val journalRepository: JournalRepository,
+    private val habitRepository: HabitRepository,
 ) : ViewModel() {
 
     var state by mutableStateOf(HomeState())
         private set
 
-    init {
+    fun load() {
         viewModelScope.launch {
             val user = authRepository.currentUser() ?: return@launch
             val entries = journalRepository.listByUser(user.id)
-            state = state.copy(user = user, entries = entries, lastAiResponse = entries.firstOrNull()?.aiResponse)
+            state = state.copy(
+                user = user,
+                entries = entries,
+                habits = habitRepository.listByUser(user.id),
+                lastAiResponse = state.lastAiResponse ?: entries.firstOrNull()?.aiResponse,
+            )
         }
     }
 
@@ -54,6 +63,14 @@ class HomeViewModel(
                 entries = listOf(entry) + state.entries,
                 lastAiResponse = entry.aiResponse,
             )
+        }
+    }
+
+    fun toggleHabit(habit: Habit) {
+        val user = state.user ?: return
+        viewModelScope.launch {
+            habitRepository.toggleToday(habit.id)
+            state = state.copy(habits = habitRepository.listByUser(user.id))
         }
     }
 
