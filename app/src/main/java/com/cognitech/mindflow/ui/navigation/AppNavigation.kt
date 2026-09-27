@@ -11,16 +11,26 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.cognitech.mindflow.MindFlowApplication
+import com.cognitech.mindflow.ui.analytics.AnalyticsScreen
+import com.cognitech.mindflow.ui.analytics.AnalyticsViewModel
 import com.cognitech.mindflow.ui.auth.AuthViewModel
 import com.cognitech.mindflow.ui.auth.LoginScreen
 import com.cognitech.mindflow.ui.auth.RegisterScreen
+import com.cognitech.mindflow.ui.components.MainDestination
+import com.cognitech.mindflow.ui.habits.HabitsScreen
+import com.cognitech.mindflow.ui.habits.HabitsViewModel
 import com.cognitech.mindflow.ui.home.HomeScreen
 import com.cognitech.mindflow.ui.home.HomeViewModel
+import com.cognitech.mindflow.ui.journal.JournalScreen
+import com.cognitech.mindflow.ui.journal.JournalViewModel
+import com.cognitech.mindflow.ui.plans.PlansScreen
+import com.cognitech.mindflow.ui.plans.PlansViewModel
+import com.cognitech.mindflow.ui.settings.SettingsScreen
+import com.cognitech.mindflow.ui.settings.SettingsViewModel
 
 object Routes {
     const val LOGIN = "login"
     const val REGISTER = "register"
-    const val HOME = "home"
 }
 
 @Composable
@@ -29,8 +39,17 @@ fun AppNavigation(app: MindFlowApplication, navController: NavHostController = r
     val googleNotAvailable = {
         Toast.makeText(context, "El acceso con Google estará disponible pronto", Toast.LENGTH_SHORT).show()
     }
-    val authFactory = viewModelFactory { initializer { AuthViewModel(app.authRepository) } }
-    val start = if (app.authRepository.isLoggedIn()) Routes.HOME else Routes.LOGIN
+    val auth = app.authRepository
+    val authFactory = viewModelFactory { initializer { AuthViewModel(auth) } }
+    val start = if (auth.isLoggedIn()) MainDestination.DASHBOARD.route else Routes.LOGIN
+
+    val onNavigate: (MainDestination) -> Unit = { destination ->
+        navController.navigate(destination.route) {
+            popUpTo(MainDestination.DASHBOARD.route) { inclusive = destination == MainDestination.DASHBOARD }
+            launchSingleTop = true
+        }
+    }
+    val onLogout: () -> Unit = { navController.navigate(Routes.LOGIN) { popUpTo(0) } }
 
     NavHost(navController = navController, startDestination = start) {
         composable(Routes.LOGIN) {
@@ -53,15 +72,55 @@ fun AppNavigation(app: MindFlowApplication, navController: NavHostController = r
                 onGoogleClick = googleNotAvailable,
             )
         }
-        composable(Routes.HOME) {
+        composable(MainDestination.DASHBOARD.route) {
             HomeScreen(
-                viewModel = viewModel(
-                    factory = viewModelFactory { initializer { HomeViewModel(app.authRepository, app.journalRepository) } },
-                ),
-                onLogout = { navController.navigate(Routes.LOGIN) { popUpTo(0) } },
+                viewModel = viewModel(factory = viewModelFactory {
+                    initializer { HomeViewModel(auth, app.journalRepository, app.habitRepository) }
+                }),
+                onNavigate = onNavigate,
+                onLogout = onLogout,
+            )
+        }
+        composable(MainDestination.JOURNAL.route) {
+            JournalScreen(
+                viewModel = viewModel(factory = viewModelFactory { initializer { JournalViewModel(auth, app.journalRepository) } }),
+                onNavigate = onNavigate,
+                onLogout = onLogout,
+            )
+        }
+        composable(MainDestination.HABITS.route) {
+            HabitsScreen(
+                viewModel = viewModel(factory = viewModelFactory {
+                    initializer { HabitsViewModel(auth, app.habitRepository, app.journalRepository) }
+                }),
+                onNavigate = onNavigate,
+                onLogout = onLogout,
+            )
+        }
+        composable(MainDestination.ANALYTICS.route) {
+            AnalyticsScreen(
+                viewModel = viewModel(factory = viewModelFactory {
+                    initializer { AnalyticsViewModel(auth, app.journalRepository, app.habitRepository, app.aiResponder) }
+                }),
+                onNavigate = onNavigate,
+                onLogout = onLogout,
+            )
+        }
+        composable(MainDestination.SETTINGS.route) {
+            SettingsScreen(
+                viewModel = viewModel(factory = viewModelFactory { initializer { SettingsViewModel(auth) } }),
+                onNavigate = onNavigate,
+                onLogout = onLogout,
+            )
+        }
+        composable(MainDestination.PLANS.route) {
+            PlansScreen(
+                viewModel = viewModel(factory = viewModelFactory { initializer { PlansViewModel(auth) } }),
+                onNavigate = onNavigate,
+                onLogout = onLogout,
             )
         }
     }
 }
 
-private fun NavHostController.goHome() = navigate(Routes.HOME) { popUpTo(0) }
+private fun NavHostController.goHome() = navigate(MainDestination.DASHBOARD.route) { popUpTo(0) }
