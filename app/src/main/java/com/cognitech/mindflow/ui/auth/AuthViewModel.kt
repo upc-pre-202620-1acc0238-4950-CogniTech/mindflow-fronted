@@ -26,7 +26,11 @@ class AuthViewModel(private val repository: AuthRepository) : ViewModel() {
         private set
 
     fun onNameChange(value: String) { state = state.copy(name = value, nameError = null, generalError = null) }
-    fun onEmailChange(value: String) { state = state.copy(email = value, emailError = null, generalError = null) }
+    // El teclado puede insertar espacios o caracteres invisibles al autocompletar; un correo nunca los lleva.
+    fun onEmailChange(value: String) {
+        val clean = value.filterNot { it.isWhitespace() || it in INVISIBLE_CHARS }
+        state = state.copy(email = clean, emailError = null, generalError = null)
+    }
     fun onPasswordChange(value: String) { state = state.copy(password = value, passwordError = null, generalError = null) }
 
     fun reset() { state = AuthFormState() }
@@ -62,6 +66,10 @@ class AuthViewModel(private val repository: AuthRepository) : ViewModel() {
                 }
                 .onFailure { state = state.copy(loading = false, generalError = it.message) }
         }
+    }
+
+    private companion object {
+        val INVISIBLE_CHARS = setOf('​', '‌', '‍', '⁠', '﻿', '­')
     }
 
     private fun validateEmail(email: String): String? = when {

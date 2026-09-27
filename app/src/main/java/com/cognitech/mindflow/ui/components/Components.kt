@@ -208,7 +208,10 @@ fun MindFlowInput(
         textStyle = TextStyle(fontSize = fontSize, color = textColor, fontFamily = Inter, fontWeight = fontWeight),
         cursorBrush = SolidColor(CornflowerBlue),
         visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
-        keyboardOptions = KeyboardOptions(keyboardType = if (isPassword) KeyboardType.Password else keyboardType),
+        keyboardOptions = KeyboardOptions(
+            keyboardType = if (isPassword) KeyboardType.Password else keyboardType,
+            autoCorrectEnabled = !isPassword && keyboardType != KeyboardType.Email,
+        ),
         modifier = modifier,
         decorationBox = { inner ->
             Row(
