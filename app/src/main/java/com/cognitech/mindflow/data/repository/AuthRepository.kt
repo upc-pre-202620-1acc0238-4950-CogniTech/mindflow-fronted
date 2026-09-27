@@ -1,6 +1,7 @@
 package com.cognitech.mindflow.data.repository
 
 import android.content.ContentValues
+import android.database.Cursor
 import android.database.sqlite.SQLiteConstraintException
 import com.cognitech.mindflow.data.local.MindFlowDatabase
 import com.cognitech.mindflow.data.local.MindFlowDatabase.Companion.TABLE_USERS
@@ -13,22 +14,23 @@ import java.security.SecureRandom
 
 class AuthRepository(
     private val database: MindFlowDatabase,
-    private val session: SessionManager,
+    val session: SessionManager,
+    private val habitRepository: HabitRepository,
 ) {
 
     suspend fun signUp(name: String, email: String, password: String): Result<User> =
         withContext(Dispatchers.IO) {
-            val now = System.currentTimeMillis()
             val values = ContentValues().apply {
                 put("name", name.trim())
                 put("email", email.trim().lowercase())
                 put("password_hash", hashPassword(password))
-                put("created_at", now)
+                put("created_at", System.currentTimeMillis())
             }
             try {
                 val id = database.writableDatabase.insertOrThrow(TABLE_USERS, null, values)
+                habitRepository.seedDefaults(id)
                 session.login(id)
-                Result.success(User(id, email.trim().lowercase(), name.trim(), now))
+                Result.success(findById(id)!!)
             } catch (e: SQLiteConstraintException) {
                 Result.failure(AuthException("Ya existe una cuenta con ese correo"))
             }
@@ -37,38 +39,59 @@ class AuthRepository(
     suspend fun signIn(email: String, password: String): Result<User> =
         withContext(Dispatchers.IO) {
             val cursor = database.readableDatabase.query(
-                TABLE_USERS,
-                arrayOf("id", "email", "name", "password_hash", "created_at"),
-                "email = ?",
-                arrayOf(email.trim().lowercase()),
-                null, null, null,
+                TABLE_USERS, arrayOf("id", "password_hash"), "email = ?",
+                arrayOf(email.trim().lowercase()), null, null, null,
             )
-            cursor.use {
-                if (!it.moveToFirst() || !verifyPassword(password, it.getString(3))) {
-                    return@withContext Result.failure(AuthException("Correo o contraseña incorrectos"))
-                }
-                val user = User(it.getLong(0), it.getString(1), it.getString(2), it.getLong(4))
-                session.login(user.id)
-                Result.success(user)
-            }
+            val id = cursor.use {
+                if (!it.moveToFirst() || !verifyPassword(password, it.getString(1))) null else it.getLong(0)
+            } ?: return@withContext Result.failure(AuthException("Correo o contraseña incorrectos"))
+            session.login(id)
+            Result.success(findById(id)!!)
         }
 
     suspend fun currentUser(): User? = withContext(Dispatchers.IO) {
-        val id = session.currentUserId ?: return@withContext null
-        database.readableDatabase.query(
-            TABLE_USERS,
-            arrayOf("id", "email", "name", "created_at"),
-            "id = ?",
-            arrayOf(id.toString()),
-            null, null, null,
-        ).use {
-            if (it.moveToFirst()) User(it.getLong(0), it.getString(1), it.getString(2), it.getLong(3)) else null
+        session.currentUserId?.let(::findById)
+    }
+
+    suspend fun updateProfile(userId: Long, name: String, occupation: String, timezone: String) =
+        withContext(Dispatchers.IO) {
+            val values = ContentValues().apply {
+                put("name", name.trim())
+                put("occupation", occupation.trim())
+                put("timezone", timezone.trim())
+            }
+            database.writableDatabase.update(TABLE_USERS, values, "id = ?", arrayOf(userId.toString()))
         }
+
+    suspend fun setPlan(userId: Long, plan: String) = withContext(Dispatchers.IO) {
+        val values = ContentValues().apply { put("plan", plan) }
+        database.writableDatabase.update(TABLE_USERS, values, "id = ?", arrayOf(userId.toString()))
+    }
+
+    suspend fun deleteAccount(userId: Long) = withContext(Dispatchers.IO) {
+        database.writableDatabase.delete(TABLE_USERS, "id = ?", arrayOf(userId.toString()))
+        session.logout()
     }
 
     fun isLoggedIn(): Boolean = session.currentUserId != null
 
     fun logout() = session.logout()
+
+    private fun findById(id: Long): User? = database.readableDatabase.query(
+        TABLE_USERS,
+        arrayOf("id", "email", "name", "occupation", "timezone", "plan", "created_at"),
+        "id = ?", arrayOf(id.toString()), null, null, null,
+    ).use { if (it.moveToFirst()) it.toUser() else null }
+
+    private fun Cursor.toUser() = User(
+        id = getLong(0),
+        email = getString(1),
+        name = getString(2),
+        occupation = getString(3),
+        timezone = getString(4),
+        plan = getString(5),
+        createdAt = getLong(6),
+    )
 
     // salt:hash en hex con SHA-256. Suficiente para almacenamiento local;
     // el backend usa BCrypt para las cuentas reales.

@@ -17,6 +17,28 @@ class LocalAiResponder {
         }
     }
 
+    /** Título corto para la tarjeta del Journal: primera frase, máximo 40 caracteres. */
+    fun title(text: String): String {
+        val firstSentence = text.split('.', '!', '?', '\n').firstOrNull { it.isNotBlank() }?.trim() ?: text.trim()
+        return if (firstSentence.length <= 40) firstSentence
+        else firstSentence.take(40).substringBeforeLast(' ').trimEnd(',', ';', ':') + "..."
+    }
+
+    /** Frase de resumen para la tarjeta "Resumen Semanal" de Analíticas. */
+    fun weeklyInsight(positive: Int, neutral: Int, negative: Int, topCategory: String?): String = when {
+        positive + neutral + negative == 0 ->
+            "Aún no tienes registros esta semana. Escribe cómo te sientes para recibir tu resumen."
+        positive >= negative && positive >= neutral ->
+            "Has mostrado una gran resiliencia esta semana." +
+                (topCategory?.let { " La mayoría de tus registros fueron sobre $it y el balance es positivo." } ?: "")
+        negative > positive ->
+            "Esta semana ha sido exigente." +
+                (topCategory?.let { " El estrés relacionado con ${it.lowercase()} aparece con frecuencia." } ?: "") +
+                " Recuerda tomar pausas."
+        else ->
+            "Tu semana ha sido equilibrada. Registrar con constancia te ayudará a detectar patrones."
+    }
+
     fun respond(text: String, sentiment: String): String {
         val t = text.lowercase()
         return when {
