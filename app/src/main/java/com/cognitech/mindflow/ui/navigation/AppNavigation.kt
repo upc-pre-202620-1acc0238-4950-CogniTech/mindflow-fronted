@@ -39,7 +39,8 @@ fun AppNavigation(app: MindFlowApplication, navController: NavHostController = r
     val googleNotAvailable = {
         Toast.makeText(context, "El acceso con Google estará disponible pronto", Toast.LENGTH_SHORT).show()
     }
-    val auth = app.authRepository
+    val auth = app.authUseCases
+    val legacyAuth = app.authRepository
     val authFactory = viewModelFactory { initializer { AuthViewModel(auth) } }
     val start = if (auth.isLoggedIn()) MainDestination.DASHBOARD.route else Routes.LOGIN
 
@@ -75,7 +76,7 @@ fun AppNavigation(app: MindFlowApplication, navController: NavHostController = r
         composable(MainDestination.DASHBOARD.route) {
             HomeScreen(
                 viewModel = viewModel(factory = viewModelFactory {
-                    initializer { HomeViewModel(auth, app.journalRepository, app.habitRepository) }
+                    initializer { HomeViewModel(legacyAuth, app.journalRepository, app.habitRepository) }
                 }),
                 onNavigate = onNavigate,
                 onLogout = onLogout,
@@ -83,7 +84,7 @@ fun AppNavigation(app: MindFlowApplication, navController: NavHostController = r
         }
         composable(MainDestination.JOURNAL.route) {
             JournalScreen(
-                viewModel = viewModel(factory = viewModelFactory { initializer { JournalViewModel(auth, app.journalRepository) } }),
+                viewModel = viewModel(factory = viewModelFactory { initializer { JournalViewModel(legacyAuth, app.journalRepository) } }),
                 onNavigate = onNavigate,
                 onLogout = onLogout,
             )
@@ -91,7 +92,7 @@ fun AppNavigation(app: MindFlowApplication, navController: NavHostController = r
         composable(MainDestination.HABITS.route) {
             HabitsScreen(
                 viewModel = viewModel(factory = viewModelFactory {
-                    initializer { HabitsViewModel(auth, app.habitRepository, app.journalRepository) }
+                    initializer { HabitsViewModel(legacyAuth, app.habitRepository, app.journalRepository) }
                 }),
                 onNavigate = onNavigate,
                 onLogout = onLogout,
@@ -100,7 +101,7 @@ fun AppNavigation(app: MindFlowApplication, navController: NavHostController = r
         composable(MainDestination.ANALYTICS.route) {
             AnalyticsScreen(
                 viewModel = viewModel(factory = viewModelFactory {
-                    initializer { AnalyticsViewModel(auth, app.journalRepository, app.habitRepository, app.aiResponder) }
+                    initializer { AnalyticsViewModel(legacyAuth, app.journalRepository, app.habitRepository, app.aiResponder) }
                 }),
                 onNavigate = onNavigate,
                 onLogout = onLogout,
@@ -108,14 +109,14 @@ fun AppNavigation(app: MindFlowApplication, navController: NavHostController = r
         }
         composable(MainDestination.SETTINGS.route) {
             SettingsScreen(
-                viewModel = viewModel(factory = viewModelFactory { initializer { SettingsViewModel(auth) } }),
+                viewModel = viewModel(factory = viewModelFactory { initializer { SettingsViewModel(legacyAuth) } }),
                 onNavigate = onNavigate,
                 onLogout = onLogout,
             )
         }
         composable(MainDestination.PLANS.route) {
             PlansScreen(
-                viewModel = viewModel(factory = viewModelFactory { initializer { PlansViewModel(auth) } }),
+                viewModel = viewModel(factory = viewModelFactory { initializer { PlansViewModel(legacyAuth) } }),
                 onNavigate = onNavigate,
                 onLogout = onLogout,
             )

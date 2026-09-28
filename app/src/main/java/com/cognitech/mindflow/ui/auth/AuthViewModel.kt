@@ -6,7 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.cognitech.mindflow.data.repository.AuthRepository
+import com.cognitech.mindflow.application.AuthUseCases
 import kotlinx.coroutines.launch
 
 data class AuthFormState(
@@ -20,7 +20,7 @@ data class AuthFormState(
     val loading: Boolean = false,
 )
 
-class AuthViewModel(private val repository: AuthRepository) : ViewModel() {
+class AuthViewModel(private val auth: AuthUseCases) : ViewModel() {
 
     var state by mutableStateOf(AuthFormState())
         private set
@@ -42,7 +42,7 @@ class AuthViewModel(private val repository: AuthRepository) : ViewModel() {
             state = state.copy(emailError = emailError, passwordError = passwordError)
             return
         }
-        submit(onSuccess) { repository.signIn(state.email, state.password) }
+        submit(onSuccess) { auth.signIn(state.email, state.password) }
     }
 
     fun signUp(onSuccess: () -> Unit) {
@@ -53,7 +53,7 @@ class AuthViewModel(private val repository: AuthRepository) : ViewModel() {
             state = state.copy(nameError = nameError, emailError = emailError, passwordError = passwordError)
             return
         }
-        submit(onSuccess) { repository.signUp(state.name, state.email, state.password) }
+        submit(onSuccess) { auth.signUp(state.name, state.email, state.password) }
     }
 
     private fun submit(onSuccess: () -> Unit, action: suspend () -> Result<*>) {

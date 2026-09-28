@@ -98,8 +98,7 @@ fun PlansScreen(
             viewModel.logout()
             onLogout()
         },
-        // El mockup de Planes usa este mismo título en su header.
-        header = { openMenu -> ScreenHeader("Ajustes y Privacidad", openMenu) },
+        header = { openMenu -> ScreenHeader("Planes", openMenu) },
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 48.dp),
