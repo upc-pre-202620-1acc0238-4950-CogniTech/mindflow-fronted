@@ -51,6 +51,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.cognitech.mindflow.MindFlowApplication
 import com.cognitech.mindflow.R
+import com.cognitech.mindflow.domain.model.ChatMessage
 import com.cognitech.mindflow.ui.components.MindFlowInput
 import com.cognitech.mindflow.ui.theme.CatskillWhite
 import com.cognitech.mindflow.ui.theme.Gray
@@ -68,7 +69,7 @@ fun BoxScope.ChatWidget() {
     val app = LocalContext.current.applicationContext as MindFlowApplication
     val viewModel: ChatViewModel = viewModel(
         viewModelStoreOwner = LocalActivity.current as ComponentActivity,
-        factory = viewModelFactory { initializer { ChatViewModel(app.aiResponder) } },
+        factory = viewModelFactory { initializer { ChatViewModel(app.chatUseCases) } },
     )
     val state = viewModel.state
 
@@ -170,11 +171,9 @@ private fun ChatPanel(
             contentPadding = PaddingValues(12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            items(state.messages, key = { it.id }) { MessageBubble(it) }
+            items(state.messages) { MessageBubble(it) }
             if (state.typing) {
-                item(key = "typing") {
-                    MessageBubble(ChatMessage(-1, "Escribiendo…", fromUser = false), muted = true)
-                }
+                item { MessageBubble(ChatMessage("Escribiendo…", fromUser = false), muted = true) }
             }
         }
 

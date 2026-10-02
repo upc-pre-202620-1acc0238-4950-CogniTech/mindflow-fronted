@@ -5,30 +5,26 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.cognitech.mindflow.data.ai.LocalAiResponder
+import com.cognitech.mindflow.application.ChatUseCases
+import com.cognitech.mindflow.domain.model.ChatMessage
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-
-data class ChatMessage(val id: Long, val text: String, val fromUser: Boolean)
 
 data class ChatState(
     val open: Boolean = false,
     val draft: String = "",
     val typing: Boolean = false,
-    val messages: List<ChatMessage> = listOf(ChatMessage(0, WELCOME_MESSAGE, fromUser = false)),
+    val messages: List<ChatMessage> = emptyList(),
 )
 
 /**
  * Chat flotante con MindFlow AI. Vive a nivel de Activity para conservar la conversación
- * al navegar entre pantallas. Hoy responde con LocalAiResponder; se reemplazará por
- * `POST /chat/conversations` del backend.
+ * al navegar entre pantallas.
  */
-class ChatViewModel(private val aiResponder: LocalAiResponder) : ViewModel() {
+class ChatViewModel(private val chat: ChatUseCases) : ViewModel() {
 
-    var state by mutableStateOf(ChatState())
+    var state by mutableStateOf(ChatState(messages = listOf(chat.welcome())))
         private set
-
-    private var nextId = 1L
 
     fun toggle() { state = state.copy(open = !state.open) }
     fun close() { state = state.copy(open = false) }
@@ -40,15 +36,12 @@ class ChatViewModel(private val aiResponder: LocalAiResponder) : ViewModel() {
         state = state.copy(
             draft = "",
             typing = true,
-            messages = state.messages + ChatMessage(nextId++, text, fromUser = true),
+            messages = state.messages + ChatMessage(text, fromUser = true),
         )
         viewModelScope.launch {
             delay(TYPING_DELAY_MS)
-            val reply = aiResponder.respond(text, aiResponder.detectSentiment(text))
-            state = state.copy(
-                typing = false,
-                messages = state.messages + ChatMessage(nextId++, reply, fromUser = false),
-            )
+            val reply = chat.reply(text)
+            state = state.copy(typing = false, messages = state.messages + reply)
         }
     }
 
@@ -56,6 +49,3 @@ class ChatViewModel(private val aiResponder: LocalAiResponder) : ViewModel() {
         const val TYPING_DELAY_MS = 900L
     }
 }
-
-private const val WELCOME_MESSAGE =
-    "Hola, soy MindFlow AI. Estoy aquí para escucharte. ¿Cómo te sientes en este momento?"

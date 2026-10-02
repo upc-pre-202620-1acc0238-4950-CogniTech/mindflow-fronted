@@ -12,6 +12,8 @@ import com.cognitech.mindflow.application.HabitUseCases
 import com.cognitech.mindflow.application.JournalUseCases
 import com.cognitech.mindflow.application.ProfileUseCases
 import com.cognitech.mindflow.application.DashboardUseCases
+import com.cognitech.mindflow.application.ChatUseCases
+import com.cognitech.mindflow.infrastructure.adapter.LocalAiAdapter
 import com.cognitech.mindflow.infrastructure.adapter.AndroidPreferencesAdapter
 import com.cognitech.mindflow.infrastructure.adapter.AndroidSessionAdapter
 import com.cognitech.mindflow.infrastructure.adapter.SqliteHabitAdapter
@@ -39,6 +41,8 @@ class MindFlowApplication : Application() {
         private set
     lateinit var dashboardUseCases: DashboardUseCases
         private set
+    lateinit var chatUseCases: ChatUseCases
+        private set
 
     override fun onCreate() {
         super.onCreate()
@@ -53,5 +57,6 @@ class MindFlowApplication : Application() {
         habitUseCases = HabitUseCases(SqliteHabitAdapter(habitRepository))
         profileUseCases = ProfileUseCases(SqliteUserAdapter(authRepository), AndroidPreferencesAdapter(sessionManager))
         dashboardUseCases = DashboardUseCases(SqliteJournalAdapter(journalRepository), SqliteHabitAdapter(habitRepository))
+        chatUseCases = ChatUseCases(LocalAiAdapter(aiResponder))
     }
 }

@@ -19,4 +19,6 @@ data class HabitLog(val habitName: String, val category: HabitCategory, val date
 enum class HabitFrequency(val label: String) { DAILY("Diario"), WEEKLY("Semanal"); companion object { fun fromStorage(value: String) = entries.firstOrNull { it.label == value } ?: DAILY } }
 enum class HabitCategory(val label: String) { PHYSICAL("💧 Salud Física"), WELLNESS("🧘 Bienestar"), SLEEP("🌙 Sueño"), MENTAL("🧠 Salud Mental"), STUDY("📚 Estudios") }
 
+data class ChatMessage(val text: String, val fromUser: Boolean)
+
 object JournalCategories { val all = listOf("Estudios", "Trabajo", "Familia", "Reflexión Personal", "Salud") }

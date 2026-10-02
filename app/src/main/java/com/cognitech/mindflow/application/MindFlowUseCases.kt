@@ -20,3 +20,10 @@ class DashboardUseCases(private val journals: JournalRepository, private val hab
     suspend fun toggleHabit(habitId: Long) = habits.toggleToday(habitId)
 }
 data class DashboardData(val entries: List<JournalEntry>, val habits: List<Habit>)
+
+class ChatUseCases(private val ai: AiResponder) {
+    fun welcome() = ChatMessage(WELCOME_MESSAGE, fromUser = false)
+    // Suspend so a remote adapter (POST /chat/conversations) can replace the local one without API changes.
+    suspend fun reply(text: String) = ChatMessage(ai.respond(text, ai.detectSentiment(text)), fromUser = false)
+    private companion object { const val WELCOME_MESSAGE = "Hola, soy MindFlow AI. Estoy aquí para escucharte. ¿Cómo te sientes en este momento?" }
+}
