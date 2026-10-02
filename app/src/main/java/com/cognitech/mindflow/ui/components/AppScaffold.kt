@@ -40,6 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.cognitech.mindflow.R
+import com.cognitech.mindflow.ui.chat.ChatWidget
 import com.cognitech.mindflow.ui.theme.CatskillWhite
 import com.cognitech.mindflow.ui.theme.CornflowerBlue
 import com.cognitech.mindflow.ui.theme.Gray
@@ -93,20 +94,26 @@ fun MainScaffold(
             }
         },
     ) {
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(CatskillWhite)
                 .systemBarsPadding()
                 .imePadding(),
         ) {
-            header { scope.launch { drawerState.open() } }
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState()),
-                content = content,
-            )
+            Column(Modifier.fillMaxSize()) {
+                header { scope.launch { drawerState.open() } }
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState()),
+                ) {
+                    content()
+                    // Espacio para que el botón del chat no tape el final del contenido.
+                    Spacer(Modifier.height(72.dp))
+                }
+            }
+            ChatWidget()
         }
     }
 }
